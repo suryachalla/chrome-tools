@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Mobile View Batch Tester</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2937;
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h1 { color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 12px; }
+    h3 { color: #374151; margin-top: 24px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy for Mobile View Batch Tester</h1>
+  <p><strong>Last Updated:</strong> August 16, 2026</p>
+  <p><strong>Mobile View Batch Tester</strong> ("we", "our", or "the Extension") is committed to protecting your privacy. This Privacy Policy explains our practices regarding data collection, usage, and disclosure.</p>
+
+  <h3>1. No Data Collection</h3>
+  <p><strong>Mobile View Batch Tester does NOT collect, store, transmit, or share any personal information or sensitive user data.</strong></p>
+  <ul>
+    <li><strong>No Personal Data:</strong> We do not collect names, emails, addresses, IP addresses, or device identifiers.</li>
+    <li><strong>No Browsing History:</strong> We do not monitor, log, or transmit your browsing history or visited web pages.</li>
+    <li><strong>No Analytics or Telemetry:</strong> We do not use any third-party tracking scripts, analytics, advertising SDKs, or remote telemetry.</li>
+    <li><strong>No Remote Code:</strong> The extension runs 100% locally on your computer with all code bundled inside the extension package.</li>
+  </ul>
+
+  <h3>2. Local Storage Usage</h3>
+  <p>The Extension utilizes Chrome's local storage API (<code>chrome.storage.local</code>) solely on your local device to save your UI preferences (selected device preset, custom dimensions, orientation, user-agent toggle, and saved test URLs). This data never leaves your computer and is never transmitted over the internet.</p>
+
+  <h3>3. Permissions & Purpose</h3>
+  <ul>
+    <li><code>debugger</code>: Used strictly to apply responsive mobile viewport metrics, touch simulation, and mobile rendering to user-selected test tabs.</li>
+    <li><code>tabs</code>: Used to open test tabs in the current browser window and navigate through user-provided test URLs.</li>
+    <li><code>scripting</code>: Used to inject the floating runner HUD inside standalone mobile test windows.</li>
+    <li><code>activeTab</code>: Used to toggle mobile emulation on the active tab upon user request.</li>
+    <li><code>declarativeNetRequest</code>: Used to apply temporary, tab-scoped mobile User-Agent headers strictly to designated test tabs.</li>
+    <li><code>&lt;all_urls&gt;</code> (Host Permission): Required exclusively to allow users to test any arbitrary web page or local development URL they provide.</li>
+  </ul>
+
+  <h3>4. Third-Party Services</h3>
+  <p>The Extension does not integrate with, sell data to, or communicate with any third-party services.</p>
+
+  <h3>5. Contact</h3>
+  <p>If you have any questions regarding this Privacy Policy, please open an issue in the official project repository.</p>
+</body>
+</html>
