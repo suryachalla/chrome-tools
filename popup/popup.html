@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Mobile View Batch Tester - Test up to 50 URLs in mobile viewports, iPhone & Android presets, touch emulation, and mobile user-agents.">
+  <meta name="keywords" content="mobile view tester, responsive design testing, batch url runner, iphone simulator, mobile viewport test, devtools mobile">
+  <title>Mobile View Batch Tester - Responsive Mobile Testing</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">Mobile Tester</h1>
+          <span class="app-subtitle">Tabs & Windows Batch Runner</span>
+        </div>
+      </div>
+      <button id="btnToggleCurrentTab" class="btn-secondary btn-sm" title="Toggle mobile mode on active tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        Current Tab
+      </button>
+    </header>
+
+    <!-- Device Configuration Card -->
+    <section class="card config-card">
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="deviceSelect" class="form-label">Target Device</label>
+          <select id="deviceSelect" class="form-select">
+            <optgroup label="Apple iPhone">
+              <option value="iphone_se">iPhone SE (375 × 667)</option>
+              <option value="iphone_14_pro_max" selected>iPhone 14 Pro Max (430 × 932)</option>
+              <option value="iphone_12_pro_max">iPhone 12 Pro Max (428 × 926)</option>
+              <option value="iphone_15_pro">iPhone 15/16 Pro (393 × 852)</option>
+              <option value="iphone_13_14_std">iPhone 13/14/15 (390 × 844)</option>
+            </optgroup>
+            <optgroup label="Android">
+              <option value="galaxy_s24">Galaxy S24 Ultra (412 × 915)</option>
+              <option value="pixel_8">Pixel 8 / 7 (412 × 892)</option>
+            </optgroup>
+            <optgroup label="Tablet">
+              <option value="ipad_mini">iPad Mini (768 × 1024)</option>
+            </optgroup>
+            <optgroup label="Custom">
+              <option value="custom">Custom Dimensions...</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="form-group orientation-group">
+          <label class="form-label">Orientation</label>
+          <div class="segmented-control">
+            <button id="btnPortrait" class="segment-btn active" type="button" title="Portrait Mode">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="3" width="12" height="18" rx="2"></rect>
+              </svg>
+            </button>
+            <button id="btnLandscape" class="segment-btn" type="button" title="Landscape Mode">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dimension Inputs (Always visible & editable for any device) -->
+      <div id="customDimensionsRow" class="form-row custom-dimensions">
+        <div class="form-group flex-1">
+          <label for="customWidth" class="form-label">Width (px)</label>
+          <input type="number" id="customWidth" class="form-input" value="430" min="200" max="2560" placeholder="Width">
+        </div>
+        <span class="dim-separator">×</span>
+        <div class="form-group flex-1">
+          <label for="customHeight" class="form-label">Height (px)</label>
+          <input type="number" id="customHeight" class="form-input" value="932" min="200" max="2560" placeholder="Height">
+        </div>
+      </div>
+
+      <!-- Active Dimension & Options Bar -->
+      <div class="viewport-info-bar">
+        <span class="badge badge-dim" id="dimensionDisplay">430 × 932 px</span>
+        <label class="ua-toggle" title="Spoofs mobile User-Agent for true mobile site rendering">
+          <input type="checkbox" id="spoofUACheckbox" checked>
+          <span class="toggle-text">Mobile User-Agent</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Batch URL Section with 50 Limit -->
+    <section class="card url-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <label for="urlInput" class="form-label">URLs to Test</label>
+          <span id="urlCountBadge" class="badge badge-count">0 / 50 URLs</span>
+        </div>
+        <div class="url-actions">
+          <button id="btnPaste" class="btn-link" type="button">Paste</button>
+          <button id="btnSample" class="btn-link" type="button">Sample</button>
+          <button id="btnClear" class="btn-link" type="button">Clear</button>
+        </div>
+      </div>
+
+      <textarea 
+        id="urlInput" 
+        class="form-textarea" 
+        rows="6" 
+        placeholder="Paste up to 50 URLs here (one per line)&#10;https://apple.com/mac&#10;https://wikipedia.org&#10;https://github.com"
+        spellcheck="false"
+      ></textarea>
+    </section>
+
+    <!-- Launch Actions -->
+    <footer class="app-footer">
+      <!-- Primary: Open in Separate Tabs in Same Window -->
+      <button id="btnOpenAllTabs" class="btn-primary" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+        Open in Tabs (Same Window)
+      </button>
+
+      <!-- Secondary Actions: Window Runner / All Windows -->
+      <div class="secondary-actions">
+        <button id="btnLaunchRunner" class="btn-secondary" type="button" title="Open in a standalone mobile-sized popup window with floating HUD">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          </svg>
+          Mobile Window Runner
+        </button>
+        <button id="btnOpenAllWindows" class="btn-subtle" type="button" title="Open all URLs in separate popup windows simultaneously">
+          All Windows
+        </button>
+      </div>
+
+      <div class="tips">
+        <span class="tip-dot"></span>
+        <span>Batch limit: Max 50 URLs per test run</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
