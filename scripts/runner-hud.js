@@ -16,6 +16,7 @@
   // Create host element and Shadow DOM
   const host = document.createElement('div');
   host.id = 'mvt-runner-hud-root';
+  host.style.cssText = 'all: initial !important; position: fixed !important; top: 10px !important; left: 50% !important; transform: translateX(-50%) !important; z-index: 2147483647 !important; pointer-events: auto !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;';
   const shadow = host.attachShadow({ mode: 'open' });
 
   // Styles inside shadow DOM (Pure Black and White Monochrome)

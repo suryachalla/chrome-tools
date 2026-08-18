@@ -32,9 +32,8 @@ The Extension utilizes Chrome's local storage API (`chrome.storage.local`) solel
 * `debugger`: Used strictly to apply responsive mobile viewport metrics, touch simulation, and mobile rendering to user-selected test tabs.
 * `tabs`: Used to open test tabs in the current browser window and navigate through user-provided test URLs.
 * `scripting`: Used to inject the floating runner HUD (navigation controls) inside standalone mobile test windows.
-* `activeTab`: Used to toggle mobile emulation on the active tab upon user request.
+* `activeTab`: Used to access and apply mobile emulation on the active tab in response to explicit user interaction.
 * `declarativeNetRequest`: Used to apply temporary, tab-scoped mobile User-Agent headers strictly to designated test tabs.
-* `<all_urls>` (Host Permission): Required exclusively to allow users to test any arbitrary web page or local development URL they provide.
 
 ---
 

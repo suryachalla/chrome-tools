@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mobile View Batch Tester",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Batch test responsive mobile views, device viewports (iPhone, Pixel), and user-agents in tabs or standalone popup windows.",
   "permissions": [
     "debugger",
@@ -10,9 +10,6 @@
     "scripting",
     "activeTab",
     "declarativeNetRequest"
-  ],
-  "host_permissions": [
-    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup/popup.html",
@@ -30,15 +27,5 @@
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "scripts/runner-hud.css"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ]
+  }
 }

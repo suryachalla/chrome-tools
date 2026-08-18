@@ -244,11 +244,7 @@ function setupEventListeners() {
     await chrome.runtime.sendMessage({
       action: 'START_RUNNER_SESSION',
       urls: batch,
-      width: config.width,
-      height: config.height,
-      userAgent: config.userAgent,
-      deviceName: config.deviceName,
-      orientation: currentOrientation
+      config: config
     });
 
     window.close();
@@ -274,9 +270,7 @@ function setupEventListeners() {
     await chrome.runtime.sendMessage({
       action: 'OPEN_ALL_WINDOWS',
       urls: batch,
-      width: config.width,
-      height: config.height,
-      userAgent: config.userAgent
+      config: config
     });
 
     window.close();

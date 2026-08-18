@@ -82,53 +82,60 @@ async function toggleTabMobileEmulation(tabId, config) {
 }
 
 async function applyEmulationToTab(tabId, config) {
+  if (!tabId || !config) return;
   const target = { tabId };
 
   try {
-    await chrome.debugger.attach(target, '1.3');
-  } catch (e) {
-    if (!e.message?.includes('Already attached')) {
-      await new Promise(r => setTimeout(r, 400));
-      try {
+    try {
+      await chrome.debugger.attach(target, '1.3');
+    } catch (e) {
+      if (!e.message?.includes('Already attached')) {
+        await new Promise(r => setTimeout(r, 200));
         await chrome.debugger.attach(target, '1.3');
-      } catch (err2) {
-        console.warn('Could not attach debugger to tab ' + tabId, err2);
-        return;
       }
     }
-  }
 
-  try {
-    await chrome.debugger.sendCommand(target, 'Page.enable');
+    await chrome.debugger.sendCommand(target, 'Page.enable').catch(() => {});
 
     const isLandscape = config.orientation === 'landscape';
-    const finalW = isLandscape ? Math.max(config.width, config.height) : Math.min(config.width, config.height);
-    const finalH = isLandscape ? Math.min(config.width, config.height) : Math.max(config.width, config.height);
+    const rawW = Number(config.width) || (isLandscape ? 667 : 375);
+    const rawH = Number(config.height) || (isLandscape ? 375 : 667);
+    const finalW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
+    const finalH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
 
-    await chrome.debugger.sendCommand(target, 'Emulation.setDeviceMetricsOverride', {
-      width: Math.round(finalW),
-      height: Math.round(finalH),
-      deviceScaleFactor: config.deviceScaleFactor || 3,
-      mobile: true,
-      fitWindow: false,
-      screenOrientation: {
-        type: isLandscape ? 'landscapePrimary' : 'portraitPrimary',
-        angle: isLandscape ? 90 : 0
-      }
-    });
+    try {
+      await chrome.debugger.sendCommand(target, 'Emulation.setDeviceMetricsOverride', {
+        width: Math.round(finalW),
+        height: Math.round(finalH),
+        deviceScaleFactor: Number(config.deviceScaleFactor) || 2,
+        mobile: true,
+        fitWindow: false,
+        screenOrientation: {
+          type: isLandscape ? 'landscapePrimary' : 'portraitPrimary',
+          angle: isLandscape ? 90 : 0
+        }
+      });
+    } catch (metricErr) {
+      await chrome.debugger.sendCommand(target, 'Emulation.setDeviceMetricsOverride', {
+        width: Math.round(finalW),
+        height: Math.round(finalH),
+        deviceScaleFactor: Number(config.deviceScaleFactor) || 2,
+        mobile: true,
+        fitWindow: false
+      }).catch(() => {});
+    }
 
     await chrome.debugger.sendCommand(target, 'Emulation.setTouchEmulationEnabled', {
       enabled: true,
       maxTouchPoints: 5
-    });
+    }).catch(() => {});
 
-    // Emulation.setUserAgentOverride is strictly scoped to this single tabId only!
     if (config.userAgent) {
       await chrome.debugger.sendCommand(target, 'Emulation.setUserAgentOverride', {
         userAgent: config.userAgent,
         acceptLanguage: 'en-US,en;q=0.9',
         platform: config.userAgent.includes('iPhone') || config.userAgent.includes('iPad') ? 'iPhone' : 'Linux armv8l'
-      });
+      }).catch(() => {});
     }
   } catch (err) {
     console.warn('Error sending emulation commands to tab ' + tabId, err);
@@ -139,26 +146,41 @@ async function applyEmulationToTab(tabId, config) {
 // STANDALONE POPUP WINDOWS
 // ==========================================
 
-async function startRunnerSession({ urls: rawUrls, width, height, userAgent, deviceName, orientation }) {
+async function startRunnerSession({ urls: rawUrls, config }) {
   await cleanupSession();
 
   const urls = (rawUrls || []).slice(0, MAX_BATCH_URLS);
   if (urls.length === 0) return;
 
+  const cfg = config || { width: 375, height: 667, orientation: 'portrait' };
+  const isLandscape = cfg.orientation === 'landscape';
+  const rawW = Number(cfg.width) || (isLandscape ? 667 : 375);
+  const rawH = Number(cfg.height) || (isLandscape ? 375 : 667);
+  const targetW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
+  const targetH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
+
+  // Outer window size adjusted for window decorations
+  const winW = Math.max(Math.round(targetW), 360);
+  const winH = Math.max(Math.round(targetH + 38), 380);
+
   const initialUrl = urls[0];
   const win = await chrome.windows.create({
     url: initialUrl,
     type: 'popup',
-    width: Math.round(width),
-    height: Math.round(height),
+    width: winW,
+    height: winH,
     focused: true
   });
 
   const tab = win.tabs && win.tabs[0];
   const tabId = tab ? tab.id : null;
 
-  if (tabId && userAgent) {
-    await applyTabScopedUserAgentRule(tabId, userAgent);
+  if (tabId) {
+    emulatedTabs.set(tabId, cfg);
+    if (cfg.userAgent) {
+      await applyTabScopedUserAgentRule(tabId, cfg.userAgent);
+    }
+    await applyEmulationToTab(tabId, cfg);
   }
 
   const session = {
@@ -166,11 +188,12 @@ async function startRunnerSession({ urls: rawUrls, width, height, userAgent, dev
     tabId: tabId,
     urls: urls,
     currentIndex: 0,
-    width: width,
-    height: height,
-    deviceName: deviceName,
-    orientation: orientation,
-    userAgent: userAgent
+    config: cfg,
+    width: targetW,
+    height: targetH,
+    deviceName: cfg.deviceName,
+    orientation: cfg.orientation,
+    userAgent: cfg.userAgent
   };
 
   await chrome.storage.local.set({ runnerSession: session });
@@ -187,41 +210,66 @@ async function navigateRunner(newIndex) {
 
   const targetUrl = runnerSession.urls[newIndex];
   if (runnerSession.tabId) {
+    if (runnerSession.config) {
+      emulatedTabs.set(runnerSession.tabId, runnerSession.config);
+    }
     await chrome.tabs.update(runnerSession.tabId, { url: targetUrl });
   }
 }
 
-async function openSingleWindow({ url, width, height, userAgent }) {
+async function openSingleWindow({ url, config }) {
+  const cfg = config || { width: 375, height: 667 };
+  const isLandscape = cfg.orientation === 'landscape';
+  const rawW = Number(cfg.width) || (isLandscape ? 667 : 375);
+  const rawH = Number(cfg.height) || (isLandscape ? 375 : 667);
+  const targetW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
+  const targetH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
+
   const win = await chrome.windows.create({
     url: url,
     type: 'popup',
-    width: Math.round(width),
-    height: Math.round(height),
+    width: Math.max(Math.round(targetW), 360),
+    height: Math.max(Math.round(targetH + 38), 380),
     focused: true
   });
 
   const tab = win.tabs && win.tabs[0];
-  if (tab?.id && userAgent) {
-    await applyTabScopedUserAgentRule(tab.id, userAgent);
+  if (tab?.id) {
+    emulatedTabs.set(tab.id, cfg);
+    if (cfg.userAgent) {
+      await applyTabScopedUserAgentRule(tab.id, cfg.userAgent);
+    }
+    await applyEmulationToTab(tab.id, cfg);
   }
 }
 
-async function openAllWindows({ urls: rawUrls, width, height, userAgent }) {
+async function openAllWindows({ urls: rawUrls, config }) {
   const urls = (rawUrls || []).slice(0, MAX_BATCH_URLS);
+  const cfg = config || { width: 375, height: 667 };
+  const isLandscape = cfg.orientation === 'landscape';
+  const rawW = Number(cfg.width) || (isLandscape ? 667 : 375);
+  const rawH = Number(cfg.height) || (isLandscape ? 375 : 667);
+  const targetW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
+  const targetH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
 
   let offset = 0;
   for (const u of urls) {
     const win = await chrome.windows.create({
       url: u,
       type: 'popup',
-      width: Math.round(width),
-      height: Math.round(height),
+      width: Math.max(Math.round(targetW), 360),
+      height: Math.max(Math.round(targetH + 38), 380),
       left: Math.min(100 + offset, 800),
       top: Math.min(100 + offset, 500),
       focused: offset === 0
     });
-    if (win.tabs && win.tabs[0] && userAgent) {
-      applyTabScopedUserAgentRule(win.tabs[0].id, userAgent).catch(() => {});
+    const tab = win.tabs && win.tabs[0];
+    if (tab?.id) {
+      emulatedTabs.set(tab.id, cfg);
+      if (cfg.userAgent) {
+        applyTabScopedUserAgentRule(tab.id, cfg.userAgent).catch(() => {});
+      }
+      applyEmulationToTab(tab.id, cfg).catch(() => {});
     }
     offset += 30;
   }
@@ -229,36 +277,53 @@ async function openAllWindows({ urls: rawUrls, width, height, userAgent }) {
 
 // Injects HUD or re-applies emulation on page load
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status !== 'complete') return;
   if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return;
 
-  // If this is an emulated tab in same window, re-apply
+  // Re-apply emulation as page loads so layout renders in mobile dimensions immediately
   if (emulatedTabs.has(tabId)) {
     const config = emulatedTabs.get(tabId);
     await applyEmulationToTab(tabId, config);
   }
 
-  // If this is the standalone runner window, inject HUD
-  const { runnerSession } = await chrome.storage.local.get('runnerSession');
-  if (runnerSession && runnerSession.windowId === tab.windowId) {
-    runnerSession.tabId = tabId;
-    await chrome.storage.local.set({ runnerSession });
-
-    try {
-      await chrome.scripting.insertCSS({
-        target: { tabId: tabId },
-        files: ['scripts/runner-hud.css']
-      });
-
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['scripts/runner-hud.js']
-      });
-    } catch (err) {
-      console.warn('Could not inject runner HUD into tab:', tab.url, err);
+  // If this is the standalone runner window, inject HUD when complete
+  if (changeInfo.status === 'complete') {
+    const { runnerSession } = await chrome.storage.local.get('runnerSession');
+    if (runnerSession && runnerSession.windowId === tab.windowId) {
+      runnerSession.tabId = tabId;
+      await chrome.storage.local.set({ runnerSession });
+      await injectRunnerHud(tabId);
     }
   }
 });
+
+async function injectRunnerHud(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['scripts/runner-hud.js']
+    });
+  } catch (scriptErr) {
+    // Fallback using debugger permission (works without broad host permissions)
+    try {
+      const target = { tabId };
+      try {
+        await chrome.debugger.attach(target, '1.3');
+      } catch (e) {
+        if (!e.message?.includes('Already attached')) return;
+      }
+      const hudUrl = chrome.runtime.getURL('scripts/runner-hud.js');
+      const res = await fetch(hudUrl);
+      const code = await res.text();
+      await chrome.debugger.sendCommand(target, 'Runtime.evaluate', {
+        expression: code,
+        userGesture: true,
+        awaitPromise: true
+      });
+    } catch (dbgErr) {
+      console.warn('Could not inject runner HUD into tab:', tabId, dbgErr);
+    }
+  }
+}
 
 // Clean up when tab is closed
 chrome.tabs.onRemoved.addListener(async (tabId) => {
