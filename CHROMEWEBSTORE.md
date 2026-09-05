@@ -70,5 +70,6 @@ English
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 2.5.0 | 2026-08-18 | Removed broad host permissions (`<all_urls>`) and adopted `activeTab` to eliminate in-depth review delays. | Ready to Submit |
+| 2.6.0 | 2026-09-05 | Added Desktop & Laptop viewport presets (Desktop Standard, 1080p, MacBook 1440x900) with zero-debugger instant opening for desktop batch testing. | Ready to Submit |
+| 2.5.0 | 2026-08-18 | Removed broad host permissions (`<all_urls>`) and adopted `activeTab` to eliminate in-depth review delays. | Reviewed |
 | 2.4.0 | 2026-08-16 | Initial Manifest V3 package with CDP emulation and sequential runner. | Reviewed |

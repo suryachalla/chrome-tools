@@ -58,7 +58,7 @@ async function openBatchMobileTabs(rawUrls, config) {
       active: i === 0
     });
 
-    if (tab?.id) {
+    if (tab?.id && !config?.isDesktopNative) {
       emulatedTabs.set(tab.id, config);
       applyEmulationToTab(tab.id, config).catch(e => console.warn('Emulation error:', e));
     }
@@ -66,13 +66,14 @@ async function openBatchMobileTabs(rawUrls, config) {
 }
 
 async function toggleTabMobileEmulation(tabId, config) {
-  if (emulatedTabs.has(tabId)) {
+  if (emulatedTabs.has(tabId) || config?.isDesktopNative) {
     try {
       await chrome.debugger.detach({ tabId });
     } catch (e) {
       console.warn('Debugger detach error:', e);
     }
     emulatedTabs.delete(tabId);
+    removeTabScopedUserAgentRule(tabId).catch(() => {});
     return false;
   } else {
     emulatedTabs.set(tabId, config);
@@ -82,7 +83,7 @@ async function toggleTabMobileEmulation(tabId, config) {
 }
 
 async function applyEmulationToTab(tabId, config) {
-  if (!tabId || !config) return;
+  if (!tabId || !config || config.isDesktopNative) return;
   const target = { tabId };
 
   try {
@@ -102,13 +103,14 @@ async function applyEmulationToTab(tabId, config) {
     const rawH = Number(config.height) || (isLandscape ? 375 : 667);
     const finalW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
     const finalH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
+    const isDesktop = !!config.isDesktop;
 
     try {
       await chrome.debugger.sendCommand(target, 'Emulation.setDeviceMetricsOverride', {
         width: Math.round(finalW),
         height: Math.round(finalH),
-        deviceScaleFactor: Number(config.deviceScaleFactor) || 2,
-        mobile: true,
+        deviceScaleFactor: Number(config.deviceScaleFactor) || (isDesktop ? 1 : 2),
+        mobile: !isDesktop,
         fitWindow: false,
         screenOrientation: {
           type: isLandscape ? 'landscapePrimary' : 'portraitPrimary',
@@ -119,16 +121,18 @@ async function applyEmulationToTab(tabId, config) {
       await chrome.debugger.sendCommand(target, 'Emulation.setDeviceMetricsOverride', {
         width: Math.round(finalW),
         height: Math.round(finalH),
-        deviceScaleFactor: Number(config.deviceScaleFactor) || 2,
-        mobile: true,
+        deviceScaleFactor: Number(config.deviceScaleFactor) || (isDesktop ? 1 : 2),
+        mobile: !isDesktop,
         fitWindow: false
       }).catch(() => {});
     }
 
-    await chrome.debugger.sendCommand(target, 'Emulation.setTouchEmulationEnabled', {
-      enabled: true,
-      maxTouchPoints: 5
-    }).catch(() => {});
+    if (!isDesktop) {
+      await chrome.debugger.sendCommand(target, 'Emulation.setTouchEmulationEnabled', {
+        enabled: true,
+        maxTouchPoints: 5
+      }).catch(() => {});
+    }
 
     if (config.userAgent) {
       await chrome.debugger.sendCommand(target, 'Emulation.setUserAgentOverride', {
@@ -159,9 +163,9 @@ async function startRunnerSession({ urls: rawUrls, config }) {
   const targetW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
   const targetH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
 
-  // Outer window size adjusted for window decorations
-  const winW = Math.max(Math.round(targetW), 360);
-  const winH = Math.max(Math.round(targetH + 38), 380);
+  const isDesktop = !!cfg.isDesktop;
+  const winW = isDesktop ? Math.min(targetW, 1440) : Math.max(Math.round(targetW), 360);
+  const winH = isDesktop ? Math.min(targetH, 900) : Math.max(Math.round(targetH + 38), 380);
 
   const initialUrl = urls[0];
   const win = await chrome.windows.create({
@@ -180,7 +184,9 @@ async function startRunnerSession({ urls: rawUrls, config }) {
     if (cfg.userAgent) {
       await applyTabScopedUserAgentRule(tabId, cfg.userAgent);
     }
-    await applyEmulationToTab(tabId, cfg);
+    if (!cfg.isDesktopNative) {
+      await applyEmulationToTab(tabId, cfg);
+    }
   }
 
   const session = {
@@ -225,11 +231,15 @@ async function openSingleWindow({ url, config }) {
   const targetW = isLandscape ? Math.max(rawW, rawH) : Math.min(rawW, rawH);
   const targetH = isLandscape ? Math.min(rawW, rawH) : Math.max(rawW, rawH);
 
+  const isDesktop = !!cfg.isDesktop;
+  const winW = isDesktop ? Math.min(targetW, 1440) : Math.max(Math.round(targetW), 360);
+  const winH = isDesktop ? Math.min(targetH, 900) : Math.max(Math.round(targetH + 38), 380);
+
   const win = await chrome.windows.create({
     url: url,
     type: 'popup',
-    width: Math.max(Math.round(targetW), 360),
-    height: Math.max(Math.round(targetH + 38), 380),
+    width: winW,
+    height: winH,
     focused: true
   });
 
@@ -239,7 +249,9 @@ async function openSingleWindow({ url, config }) {
     if (cfg.userAgent) {
       await applyTabScopedUserAgentRule(tab.id, cfg.userAgent);
     }
-    await applyEmulationToTab(tab.id, cfg);
+    if (!cfg.isDesktopNative) {
+      await applyEmulationToTab(tab.id, cfg);
+    }
   }
 }
 

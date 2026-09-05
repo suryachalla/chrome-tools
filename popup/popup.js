@@ -57,6 +57,31 @@ const DEVICES = {
     scale: 2,
     ua: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
   },
+  desktop_standard: {
+    name: 'Desktop (Standard / Full)',
+    width: 1920,
+    height: 1080,
+    scale: 1,
+    isDesktop: true,
+    isDesktopNative: true,
+    ua: null
+  },
+  desktop_1080p: {
+    name: 'Desktop HD (1920 × 1080)',
+    width: 1920,
+    height: 1080,
+    scale: 1,
+    isDesktop: true,
+    ua: null
+  },
+  macbook_1440: {
+    name: 'MacBook / Laptop (1440 × 900)',
+    width: 1440,
+    height: 900,
+    scale: 2,
+    isDesktop: true,
+    ua: null
+  },
   custom: {
     name: 'Custom',
     width: 430,
@@ -98,6 +123,12 @@ function setupEventListeners() {
     const selectedKey = deviceSelect.value;
     if (selectedKey !== 'custom' && DEVICES[selectedKey]) {
       const dev = DEVICES[selectedKey];
+      if (dev.isDesktop) {
+        currentOrientation = 'landscape';
+        btnLandscape.classList.add('active');
+        btnPortrait.classList.remove('active');
+        spoofUACheckbox.checked = false;
+      }
       const isLandscape = currentOrientation === 'landscape';
       customWidthInput.value = isLandscape ? Math.max(dev.width, dev.height) : Math.min(dev.width, dev.height);
       customHeightInput.value = isLandscape ? Math.min(dev.width, dev.height) : Math.max(dev.width, dev.height);
@@ -170,9 +201,9 @@ function setupEventListeners() {
 
   btnSample.addEventListener('click', () => {
     urlInput.value = [
-      'https://apple.com/mac',
       'https://m.wikipedia.org',
-      'https://news.ycombinator.com'
+      'https://news.ycombinator.com',
+      'https://github.com'
     ].join('\n');
     updateUrlCount();
     saveState();
@@ -284,12 +315,12 @@ function getDeviceConfig() {
   // Always use the user-customizable input values
   const inputW = parseInt(customWidthInput.value, 10) || dev.width;
   const inputH = parseInt(customHeightInput.value, 10) || dev.height;
-  const scale = dev.scale || 3;
+  const scale = dev.scale || (dev.isDesktop ? 1 : 3);
 
   const isLandscape = currentOrientation === 'landscape';
   const width = isLandscape ? Math.max(inputW, inputH) : Math.min(inputW, inputH);
   const height = isLandscape ? Math.min(inputW, inputH) : Math.max(inputW, inputH);
-  const ua = spoofUACheckbox.checked ? (dev.ua || DEVICES.iphone_14_pro_max.ua) : null;
+  const ua = (!dev.isDesktop && spoofUACheckbox.checked) ? (dev.ua || DEVICES.iphone_14_pro_max.ua) : null;
   const name = selectedKey === 'custom' ? 'Custom' : (dev.name || 'Mobile');
 
   return {
@@ -299,7 +330,9 @@ function getDeviceConfig() {
     height: height,
     deviceScaleFactor: scale,
     orientation: currentOrientation,
-    userAgent: ua
+    userAgent: ua,
+    isDesktop: !!dev.isDesktop,
+    isDesktopNative: !!dev.isDesktopNative
   };
 }
 
@@ -332,7 +365,11 @@ function updateUrlCount() {
 
 function updateUI() {
   const config = getDeviceConfig();
-  dimensionDisplay.textContent = `${config.width} × ${config.height} px`;
+  if (config.isDesktopNative) {
+    dimensionDisplay.textContent = 'Desktop (Native)';
+  } else {
+    dimensionDisplay.textContent = `${config.width} × ${config.height} px`;
+  }
   updateUrlCount();
 }
 
