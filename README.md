@@ -19,16 +19,6 @@
   * Spoofs exact Safari / Chrome mobile User-Agents so servers serve mobile-first HTML without affecting your desktop browsing tabs.
 * **Interactive Mobile Window Runner & Navigation HUD**:
   * Sequential URL browser in a standalone phone window with keyboard shortcuts (`[` for previous, `]` for next, URL jumper, and 1-click clipboard copy).
-* **Pure Black & White Minimalist Design**:
-  * High-contrast monochrome theme (`#000000` / `#FFFFFF`) optimized for speed and clarity.
-
----
-
-## 🎯 Target Keywords & Use Cases
-- **Responsive Web Design (RWD) Testing**: Verify breakpoints, fluid grids, and media queries.
-- **Mobile SEO & Core Web Vitals Audit**: Check mobile layout shifts (CLS), tap target spacing, font readability, and viewport responsiveness.
-- **QA Automation & Batch Verification**: Review staging links, production releases, and multi-page marketing funnels on mobile.
-- **Mobile First Indexing Preparation**: Ensure responsive tags `<meta name="viewport">` and mobile content render as intended by search engines.
 
 ---
 
